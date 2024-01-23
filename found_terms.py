@@ -3,15 +3,39 @@ import PyPDF2
 import re
 import os
 import copy
+import math
 
-def search_and_registration(term_list, pages, pdf_writer):
+
+import io
+from reportlab.pdfgen import canvas
+
+page_width = math.floor(8.27*72)
+page_height = math.floor(4.69*72)## 11.69*72 real size
+## Read existing PDF
+
+def search_and_registration(term_list, pages, pdf_writer, file_name):
+   blank_page_flag = True
    for page in pages:
       text = page.extract_text().upper()
       for term in term_list:
          if(term.findall(text)):
+            if blank_page_flag:
+               ##pdf_writer.add_blank_page(page_width, page_height)
+               packet = io.BytesIO()
+               can = canvas.Canvas(packet, pagesize=[page_width, page_height])
+               can.setFont("Courier", 16)
+               can.drawString(20, 200, file_name)
+               can.save()
+               packet.seek(0)
+               new_pdf = PyPDF2.PdfReader(packet)
+               
+               pdf_writer.add_page(new_pdf.pages[0])
+               print("AKIIIIIIIIII")
+               blank_page_flag = False
             pdf_writer.add_page(page)
 
    pdf_out = open('page_of_terms.pdf', 'wb')
+
    pdf_writer.write(pdf_out)
    pdf_out.close()
 
@@ -21,9 +45,6 @@ term_list=[]
 while i<=terms_count:
    term_list.append(input("Informe o " + str(i) + "º termo para pesquisa: "))
    i+=1
-print(term_list)
-# define key terms
-
 
 #### - DISCART - pattern = re.compile(r'^weighting.+(?:\n.+)*', re.MULTILINE)
 pattern_list = []
@@ -49,7 +70,7 @@ print(pattern_list)
 
 # open the pdf files
 #reader_list = []
-files_names = copy.copy(os.listdir('Planos_Internaci_Nordeste2'))
+files_names = copy.copy(os.listdir('Planos_Internaci_Nordeste'))
 '''
 for file_name in os.listdir('Planos_Internaci_Nordeste'):
    print(file_name)
@@ -59,6 +80,7 @@ for file_name in os.listdir('Planos_Internaci_Nordeste'):
 
 # pdf file output
 pdf_writer = PyPDF2.PdfWriter("")
+##pdf_writer.add_blank_page(page_width, page_height)
 
 # extract text, search and write on pdf file
 ##reader = PyPDF2.PdfReader("research.pdf")
@@ -67,8 +89,8 @@ pdf_writer = PyPDF2.PdfWriter("")
 for file_name in files_names:
    print("=========================")
    print(file_name)
-   reader = PyPDF2.PdfReader('Planos_Internaci_Nordeste2/' + file_name)
-   search_and_registration(pattern_list, reader.pages, pdf_writer)
+   reader = PyPDF2.PdfReader('Planos_Internaci_Nordeste/' + file_name)
+   search_and_registration(pattern_list, reader.pages, pdf_writer, file_name)
 
 
 ''' DISCART
