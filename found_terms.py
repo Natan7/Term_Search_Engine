@@ -4,38 +4,50 @@ import re
 import os
 import copy
 import math
-
-
+import fitz
 import io
 from reportlab.pdfgen import canvas
+from datetime import datetime
+import time
 
-page_width = math.floor(8.27*72)
-page_height = math.floor(4.69*72)## 11.69*72 real size
-## Read existing PDF
+PAGE_WIDTH = math.floor(8.27*72)
+PAGE_HEIGHT = math.floor(4.69*72)## 11.69*72 real size
 
-def search_and_registration(term_list, pages, pdf_writer, file_name):
+def create_cover_page(file_name):
+   packet = io.BytesIO()
+   can = canvas.Canvas(packet, pagesize=[PAGE_WIDTH, PAGE_HEIGHT])
+   can.setFont("Courier", 15)
+   can.drawString(20, 180, file_name)
+   can.save()
+   packet.seek(0)
+   return PyPDF2.PdfReader(packet)
+
+def search_and_registration(term_list, doc, reader_doc, pdf_writer, file_name):
    blank_page_flag = True
-   for page in pages:
-      text = page.extract_text().upper()
+   page_number = 0
+   page_number_added = []
+   for page in doc:
+      text = page.getText().upper()
       for term in term_list:
-         if(term.findall(text)):
+         print(re.search(term, text))
+         if(re.search(term, text)):
             if blank_page_flag:
-               ##pdf_writer.add_blank_page(page_width, page_height)
-               packet = io.BytesIO()
-               can = canvas.Canvas(packet, pagesize=[page_width, page_height])
-               can.setFont("Courier", 16)
-               can.drawString(20, 200, file_name)
-               can.save()
-               packet.seek(0)
-               new_pdf = PyPDF2.PdfReader(packet)
-               
+               new_pdf = create_cover_page(file_name)
+
                pdf_writer.add_page(new_pdf.pages[0])
-               print("AKIIIIIIIIII")
                blank_page_flag = False
-            pdf_writer.add_page(page)
 
-   pdf_out = open('page_of_terms.pdf', 'wb')
+            print(text)
+            if page_number not in page_number_added:
+               pdf_writer.add_page(reader_doc[page_number])
+               page_number_added.append(page_number)
 
+      page_number+=1
+   
+   #current_time = time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime())
+   current_time = time.strftime("%Y-%m-%d", time.localtime())
+   file_output_name = "search_results_" + current_time + ".pdf"
+   pdf_out = open(file_output_name, 'wb')
    pdf_writer.write(pdf_out)
    pdf_out.close()
 
@@ -51,17 +63,32 @@ pattern_list = []
 for term in term_list:
    ##pattern_txt = "(?:.*?)"
    pattern_txt = ""
-   word_list = term.split(" ")
-   word_list = list(map(str.upper, word_list))
 
+   word_list = term.split(" ")
+   '''
+   word_list = list(map(str.upper, word_list))
+   first_word_flag = True
    for word in word_list:
-      pattern_txt += "(\\b" + word + "\\b)"
-   
-   
-   pattern_txt += "[:,]?"
+      if first_word_flag:
+         pattern_txt += "(\b"
+         pattern_txt += word
+         first_word_flag = False
+      else:
+         pattern_txt += " " + word
+
+   pattern_txt += "\b)[:,]?"
+   '''
+   print(term)
+   word = term.upper()
+   print(word)
+   ##pattern_txt += "(" + word + "\\b)[:,]?"
+   pattern_txt += r"\b" + word + r"\b"
+
    ##pattern_txt += "(?:.*?).(?:\n\n|\Z)"
-   pattern = re.compile(pattern_txt, re.DOTALL)
-   pattern_list.append(pattern)
+   ##pattern = re.compile(pattern_txt, re.DOTALL)
+
+   ##pattern_list.append(pattern)
+   pattern_list.append(pattern_txt)
 
 print(pattern_list)
 
@@ -71,16 +98,11 @@ print(pattern_list)
 # open the pdf files
 #reader_list = []
 files_names = copy.copy(os.listdir('Planos_Internaci_Nordeste'))
-'''
-for file_name in os.listdir('Planos_Internaci_Nordeste'):
-   print(file_name)
-   reader_list.append(PyPDF2.PdfReader(file_name))
-'''
 
 
 # pdf file output
 pdf_writer = PyPDF2.PdfWriter("")
-##pdf_writer.add_blank_page(page_width, page_height)
+##pdf_writer.add_blank_page(PAGE_WIDTH, PAGE_HEIGHT)
 
 # extract text, search and write on pdf file
 ##reader = PyPDF2.PdfReader("research.pdf")
@@ -89,8 +111,14 @@ pdf_writer = PyPDF2.PdfWriter("")
 for file_name in files_names:
    print("=========================")
    print(file_name)
+   doc = fitz.open('Planos_Internaci_Nordeste/' + file_name)
    reader = PyPDF2.PdfReader('Planos_Internaci_Nordeste/' + file_name)
-   search_and_registration(pattern_list, reader.pages, pdf_writer, file_name)
+   search_and_registration(pattern_list, doc, reader.pages, pdf_writer, file_name)
+   ##reader = PyPDF2.PdfReader('Planos_Internaci_Nordeste/' + file_name)
+   ##search_and_registration(pattern_list, reader.pages, pdf_writer, file_name)
+
+      
+
 
 
 ''' DISCART
@@ -101,6 +129,15 @@ for page in reader.pages:
       pdf_writer.add_page(page)
 
 pdf_out = open('page_of_terms.pdf', 'wb')
+pdf_writer.write(pdf_out)
+pdf_out.close()
+'''
+
+#current_time = time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime())
+'''
+current_time = time.strftime("%Y-%m-%d", time.localtime())
+file_output_name = "search_results_" + current_time + ".pdf"
+pdf_out = open(file_output_name, 'wb')
 pdf_writer.write(pdf_out)
 pdf_out.close()
 '''
