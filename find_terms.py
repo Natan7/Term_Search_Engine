@@ -13,6 +13,9 @@ from reportlab.pdfgen import canvas
 PAGE_WIDTH = math.floor(8.27*72)
 PAGE_HEIGHT = math.floor(4.69*72)## 11.69*72 real size
 
+# variable
+folder_name = ""
+
 # methods
 def generate_pattern(term_list):
    for term in term_list:
@@ -51,7 +54,8 @@ def search_and_registration(term_list, doc, reader_doc, pdf_writer, file_name):
    
    #current_time = time.strftime("%Y-%m-%d_%H:%M:%S", time.localtime())
    current_time = time.strftime("%Y-%m-%d", time.localtime())
-   file_output_name = "search_results_" + current_time + ".pdf"
+   file_output_name = "search_results_" + current_time + "-" + folder_name + ".pdf"
+   
    pdf_out = open(file_output_name, 'wb')
    pdf_writer.write(pdf_out)
    pdf_out.close()
@@ -63,6 +67,11 @@ term_list=[]
 print("Lendo input de termos...")
 with open('input_terms.txt') as file:
     term_list = [line.rstrip() for line in file]
+
+folder_name = term_list.pop(0)
+print("Pasta com a localização dos arquivos: ")
+print(folder_name, sep = "\n")
+
 print("Termos utilizados para esta busca: ")
 print(*term_list, sep = "\n")
 
@@ -71,7 +80,7 @@ pattern_list = generate_pattern(term_list)
 print(pattern_list)
 
 ''' get pdf files names '''
-files_names = copy.copy(os.listdir('Planos_Internaci_Nordeste'))
+files_names = copy.copy(os.listdir(folder_name))
 
 ''' create pdf file output '''
 pdf_writer = PyPDF2.PdfWriter("")
@@ -81,8 +90,8 @@ for file_name in files_names:
    print("======")
    print(file_name)
    print("======")
-   doc = fitz.open('Planos_Internaci_Nordeste/' + file_name)
-   reader = PyPDF2.PdfReader('Planos_Internaci_Nordeste/' + file_name)
+   doc = fitz.open(folder_name + '/' + file_name)
+   reader = PyPDF2.PdfReader(folder_name + '/' + file_name)
    search_and_registration(pattern_list, doc, reader.pages, pdf_writer, file_name)
 
 ''' results '''
